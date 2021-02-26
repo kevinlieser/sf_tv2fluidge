@@ -26,7 +26,14 @@
 /**
  * Helper class for handling logs
  */
-class Tx_SfTv2fluidge_Service_LogHelper implements t3lib_Singleton {
+namespace Sf\SfTv2fluidge\Service;
+
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+
+/**
+ * Helper class for handling TV content column migration to Fluid backend layouts
+ */
+class LogHelper implements \TYPO3\CMS\Core\SingletonInterface {
 
     /**
      * @var array
@@ -61,4 +68,4 @@ class Tx_SfTv2fluidge_Service_LogHelper implements t3lib_Singleton {
 
 }
 
-?>
+?> 

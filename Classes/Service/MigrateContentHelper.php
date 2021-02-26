@@ -23,23 +23,27 @@
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
+namespace Sf\SfTv2fluidge\Service;
+
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+
 /**
  * Helper class for handling TV content column migration to Fluid backend layouts
  */
-class Tx_SfTv2fluidge_Service_MigrateContentHelper implements t3lib_Singleton {
+class MigrateContentHelper implements \TYPO3\CMS\Core\SingletonInterface {
 
 	/**
-	 * @var Tx_SfTv2fluidge_Service_SharedHelper
+	 * @var \Sf\SfTv2fluidge\Service\SharedHelper
 	 */
 	protected $sharedHelper;
 
 	/**
 	 * DI for shared helper
 	 *
-	 * @param Tx_SfTv2fluidge_Service_SharedHelper $sharedHelper
+	 * @param \Sf\SfTv2fluidge\Service\SharedHelper $sharedHelper
 	 * @return void
 	 */
-	public function injectSharedHelper(Tx_SfTv2fluidge_Service_SharedHelper $sharedHelper) {
+	public function injectSharedHelper(\Sf\SfTv2fluidge\Service\SharedHelper $sharedHelper) {
 		$this->sharedHelper = $sharedHelper;
 	}
 
@@ -50,19 +54,19 @@ class Tx_SfTv2fluidge_Service_MigrateContentHelper implements t3lib_Singleton {
 	 */
 	public function getAllFileTvTemplates() {
 		$extConf = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf']['templavoila']);
-		tx_templavoila_staticds_tools::readStaticDsFilesIntoArray($extConf);
+		\Extension\Templavoila\Utility\StaticDataStructure\ToolsUtility::readStaticDsFilesIntoArray($extConf);
 		$staticDsFiles = array();
 		foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['templavoila']['staticDataStructures'] as $staticDataStructure) {
-			if ($staticDataStructure['scope'] == tx_templavoila_datastructure::SCOPE_PAGE) {
+			if ($staticDataStructure['scope'] == \Extension\Templavoila\Domain\Model\AbstractDataStructure::SCOPE_PAGE) {
 				$staticDsFiles[] = $staticDataStructure['path'];
 			}
 		}
-		$quotedStaticDsFiles = $GLOBALS['TYPO3_DB']->fullQuoteArray($staticDsFiles, 'tx_templavoila_tmplobj');
+		$quotedStaticDsFiles = $GLOBALS['TYPO3_DB']->fullQuoteArray($staticDsFiles, 'tx_templavoilaplus_tmplobj');
 
-		$fields = 'tx_templavoila_tmplobj.uid, tx_templavoila_tmplobj.title';
-		$table = 'tx_templavoila_tmplobj';
-		$where = 'tx_templavoila_tmplobj.datastructure IN(' . implode(',', $quotedStaticDsFiles) . ')
-			AND tx_templavoila_tmplobj.deleted=0';
+		$fields = 'tx_templavoilaplus_tmplobj.uid, tx_templavoilaplus_tmplobj.title';
+		$table = 'tx_templavoilaplus_tmplobj';
+		$where = 'tx_templavoilaplus_tmplobj.datastructure IN(' . implode(',', $quotedStaticDsFiles) . ')
+			AND tx_templavoilaplus_tmplobj.deleted=0';
 
 		$res = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows($fields, $table, $where, '', '', '');
 
@@ -80,10 +84,10 @@ class Tx_SfTv2fluidge_Service_MigrateContentHelper implements t3lib_Singleton {
 	 * @return array
 	 */
 	public function getAllDbTvTemplates() {
-		$fields = 'tx_templavoila_tmplobj.uid, tx_templavoila_tmplobj.title';
-		$table = 'tx_templavoila_datastructure, tx_templavoila_tmplobj';
-		$where = 'tx_templavoila_datastructure.scope=1 AND tx_templavoila_datastructure.uid = tx_templavoila_tmplobj.datastructure
-			AND tx_templavoila_datastructure.deleted=0 AND tx_templavoila_tmplobj.deleted=0';
+		$fields = 'tx_templavoilaplus_tmplobj.uid, tx_templavoilaplus_tmplobj.title';
+		$table = 'tx_templavoilaplus_datastructure, tx_templavoilaplus_tmplobj';
+		$where = 'tx_templavoilaplus_datastructure.scope=1 AND tx_templavoilaplus_datastructure.uid = tx_templavoilaplus_tmplobj.datastructure
+			AND tx_templavoilaplus_datastructure.deleted=0 AND tx_templavoilaplus_tmplobj.deleted=0';
 
 		$res = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows($fields, $table, $where, '', '', '');
 
@@ -101,6 +105,23 @@ class Tx_SfTv2fluidge_Service_MigrateContentHelper implements t3lib_Singleton {
 	 * @return array
 	 */
 	public function getAllBeLayouts() {
+
+		$backendLayoutCollections = $this->sharedHelper->getBackendLayoutCollections();
+
+		if (is_array($backendLayoutCollections)) {
+			foreach ($backendLayoutCollections as $provider => $layoutCollection) {
+				$layouts = $layoutCollection->getAll();
+				if (count($layouts)) {
+					/** @var \TYPO3\CMS\Backend\View\BackendLayout\BackendLayout $layout */
+					foreach($layouts as $layout) {
+						$gridElements[$layoutCollection->getIdentifier() . '__' .  $layout->getIdentifier()] = $layout->getTitle();
+					}
+				}
+			}
+		}
+
+		return $gridElements;
+
 		$fields = 'uid, title';
 		$table = 'backend_layout';
 		$where = 'deleted=0';
@@ -123,7 +144,7 @@ class Tx_SfTv2fluidge_Service_MigrateContentHelper implements t3lib_Singleton {
 	 */
 	public function getTvDsUidForTemplate($uidTemplate) {
 		$fields = 'datastructure';
-		$table = 'tx_templavoila_tmplobj';
+		$table = 'tx_templavoilaplus_tmplobj';
 		$where = 'uid=' . (int)$uidTemplate;
 
 		$res = $GLOBALS['TYPO3_DB']->exec_SELECTgetSingleRow($fields, $table, $where, '', '', '');
@@ -145,7 +166,7 @@ class Tx_SfTv2fluidge_Service_MigrateContentHelper implements t3lib_Singleton {
 		$pageRecord = $this->sharedHelper->getPage($pageUid);
 		$tvTemplateUid = (int)$this->sharedHelper->getTvPageTemplateUid($pageUid);
 		$isTvDataLangDisabled = $this->sharedHelper->isTvDataLangDisabled($tvTemplateUid);
-		$pageFlexformString = $pageRecord['tx_templavoila_flex'];
+		$pageFlexformString = $pageRecord['tx_templavoilaplus_flex'];
 
 		if (!empty($pageFlexformString)) {
 			$langIsoCodes = $this->sharedHelper->getLanguagesIsoCodes();
@@ -159,7 +180,7 @@ class Tx_SfTv2fluidge_Service_MigrateContentHelper implements t3lib_Singleton {
 				$flexformString = $pageFlexformString;
 				$langUid = (int)$langUid;
 				if (($flexformConversionOption !== 'exclude')) {
-					if (t3lib_extMgm::isLoaded('static_info_tables')) {
+					if (\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::isLoaded('static_info_tables')) {
 						if ($langUid > 0) {
 							$forceLanguage = ($flexformConversionOption === 'forceLanguage');
 							if (!$isTvDataLangDisabled) {
@@ -172,7 +193,7 @@ class Tx_SfTv2fluidge_Service_MigrateContentHelper implements t3lib_Singleton {
 				$flexformString = $this->sharedHelper->cleanFlexform($flexformString, $tvTemplateUid);
 
 				if (!empty($flexformString)) {
-					$flexformArray = t3lib_div::xml2array($flexformString);
+					$flexformArray = \TYPO3\CMS\Core\Utility\GeneralUtility::xml2array($flexformString);
 					if (is_array($flexformArray['data'])) {
 						foreach ($flexformArray['data'] as $sheetData) {
 							if (is_array($sheetData['lDEF'])) {
@@ -201,7 +222,7 @@ class Tx_SfTv2fluidge_Service_MigrateContentHelper implements t3lib_Singleton {
 														'pages_language_overlay',
 														'(pid=' . intval($pageUid) . ')'
 														. ' AND (sys_language_uid = ' . $langUid . ')' .
-														t3lib_BEfunc::deleteClause('pages_language_overlay'),
+														\TYPO3\CMS\Backend\Utility\BackendUtility::deleteClause('pages_language_overlay'),
 
 														array(
 															$fullFieldName => $fieldValue
@@ -259,7 +280,7 @@ class Tx_SfTv2fluidge_Service_MigrateContentHelper implements t3lib_Singleton {
 	 * @return void
 	 */
 	public function markTvTemplateDeleted($uidTvTemplate) {
-		$GLOBALS['TYPO3_DB']->exec_UPDATEquery('tx_templavoila_tmplobj', 'uid=' . intval($uidTvTemplate),
+		$GLOBALS['TYPO3_DB']->exec_UPDATEquery('tx_templavoilaplus_tmplobj', 'uid=' . intval($uidTvTemplate),
 			array('deleted' => 1)
 		);
 	}
@@ -277,10 +298,10 @@ class Tx_SfTv2fluidge_Service_MigrateContentHelper implements t3lib_Singleton {
 		$pageRecord = $this->sharedHelper->getPage($pageUid);
 		$updateFields = array();
 		$count = 0;
-		if ($pageRecord['tx_templavoila_to'] > 0 && $pageRecord['tx_templavoila_to'] == $UidTvTemplate) {
+		if ($pageRecord['tx_templavoilaplus_to'] > 0 && $pageRecord['tx_templavoilaplus_to'] == $UidTvTemplate) {
 			$updateFields['backend_layout'] = $uidBeLayout;
 		}
-		if ($pageRecord['tx_templavoila_next_to'] > 0 && $pageRecord['tx_templavoila_next_to'] == $UidTvTemplate) {
+		if ($pageRecord['tx_templavoilaplus_next_to'] > 0 && $pageRecord['tx_templavoilaplus_next_to'] == $UidTvTemplate) {
 			$updateFields['backend_layout_next_level'] = $uidBeLayout;
 		}
 		if (count($updateFields) > 0) {

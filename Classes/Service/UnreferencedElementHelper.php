@@ -23,43 +23,46 @@
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
+namespace Sf\SfTv2fluidge\Service;
+
 /**
  * Helper class for handling unreferenced elements
  */
-class Tx_SfTv2fluidge_Service_UnreferencedElementHelper implements t3lib_Singleton {
+class UnreferencedElementHelper implements \TYPO3\CMS\Core\SingletonInterface {
 
 	/**
-	 * @var Tx_SfTv2fluidge_Service_SharedHelper
+	 * @var \Sf\SfTv2fluidge\Service\SharedHelper
 	 */
 	protected $sharedHelper;
 
 	/**
 	 * DI for shared helper
 	 *
-	 * @param Tx_SfTv2fluidge_Service_SharedHelper $sharedHelper
+	 * @param \Sf\SfTv2fluidge\Service\SharedHelper $sharedHelper
 	 * @return void
 	 */
-	public function injectSharedHelper(Tx_SfTv2fluidge_Service_SharedHelper $sharedHelper) {
+	public function injectSharedHelper(\Sf\SfTv2fluidge\Service\SharedHelper $sharedHelper) {
 		$this->sharedHelper = $sharedHelper;
 	}
 
     /**
-     * @var Tx_SfTv2fluidge_Service_LogHelper
+     * @var \Sf\SfTv2fluidge\Service\LogHelper
      */
     protected $logHelper;
 
     /**
      * DI for shared helper
      *
-     * @param Tx_SfTv2fluidge_Service_LogHelper $logHelper
+     * @param \Sf\SfTv2fluidge\Service\LogHelper $logHelper
      * @return void
      */
-    public function injectLogHelper(Tx_SfTv2fluidge_Service_LogHelper $logHelper) {
+    public function injectLogHelper(\Sf\SfTv2fluidge\Service\LogHelper $logHelper) {
         $this->logHelper = $logHelper;
     }
 
+
 	/**
-	 * Marks all unreferenced element records as deleted with the recursion level set in the extension setting
+	 * Marks all unreferenced element records as deleted with a recursion level of 99
 	 *
 	 * @param bool $markAsNegativeColPos
      * @param bool $ignoreShortcutPages
@@ -67,9 +70,10 @@ class Tx_SfTv2fluidge_Service_UnreferencedElementHelper implements t3lib_Singlet
 	 * @return int Number of records deleted
 	 */
 	public function markDeletedUnreferencedElementsRecords($markAsNegativeColPos = FALSE, $ignoreShortcutPages = FALSE, $ignoreSysfolders = FALSE) {
-        $pids = $this->sharedHelper->getPageIds();
+	        $pids = $this->sharedHelper->getPageIds();
 		$allReferencedElementsArr = array();
-
+		
+		
         // Handle page types, that can be ignored
         $ignorePageTypes = array();
         if ($ignoreShortcutPages) {
@@ -84,38 +88,52 @@ class Tx_SfTv2fluidge_Service_UnreferencedElementHelper implements t3lib_Singlet
         // Array which holds all PIDs to be processed when processing unreferenced content elements
         $processPids = array();
 
+		
 		foreach ($pids as $pid) {
 			$pageRecord = $this->sharedHelper->getPage($pid);
-			if (!empty($pageRecord) && !in_array(intval($pageRecord['doktype']), $ignorePageTypes)) {
-                // Add the PID to the array of PIDs to be processed
-                array_push($processPids, $pid);
-                $contentTree = $this->sharedHelper->getTemplavoilaAPIObj()->getContentTree('pages', $pageRecord, FALSE);
-                $referencedElementsArrAsKeys = $contentTree['contentElementUsage'];
-                if (!empty($referencedElementsArrAsKeys)) {
-                    $referencedElementsArr = array_keys($referencedElementsArrAsKeys);
-                    $allReferencedElementsArr = array_merge($allReferencedElementsArr, $referencedElementsArr);
-                }
-            }
+			if (!empty($pageRecord)) {
+				$contentTree = $this->sharedHelper->getTemplavoilaAPIObj()->getContentTree('pages', $pageRecord, FALSE);
+				$referencedElementsArrAsKeys = $contentTree['contentElementUsage'];
+				if (!empty($referencedElementsArrAsKeys)) {
+					$referencedElementsArr = array_keys($referencedElementsArrAsKeys);
+					$allReferencedElementsArr = array_merge($allReferencedElementsArr, $referencedElementsArr);
+				}
+			}
+				if (!empty($pageRecord) && !in_array(intval($pageRecord['doktype']), $ignorePageTypes)) {
+			                // Add the PID to the array of PIDs to be processed
+			                array_push($processPids, $pid);
+			                $contentTree = $this->sharedHelper->getTemplavoilaAPIObj()->getContentTree('pages', $pageRecord, FALSE);
+			                $referencedElementsArrAsKeys = $contentTree['contentElementUsage'];
+			                if (!empty($referencedElementsArrAsKeys)) {
+			                    $referencedElementsArr = array_keys($referencedElementsArrAsKeys);
+			                    $allReferencedElementsArr = array_merge($allReferencedElementsArr, $referencedElementsArr);
+			                }
+			            }
 		}
 		$allReferencedElementsArr = array_unique($allReferencedElementsArr);
 		$allRecordUids = $this->getUnreferencedElementsRecords($allReferencedElementsArr, $processPids);
 		$countRecords = count($allRecordUids);
 
-        // Only process when we have records to be deleted
-        if ($countRecords > 0) {
-            if ($markAsNegativeColPos) {
-                $this->markNegativeColPos($allRecordUids);
-            } else {
-                $this->markDeleted($allRecordUids);
-            }
-        }
+		if ($markAsNegativeColPos) {
+			$this->markNegativeColPos($allRecordUids);
+		} else {
+			$this->markDeleted($allRecordUids);
+		}
+		// Only process when we have records to be deleted
+		        if ($countRecords > 0) {
+		            if ($markAsNegativeColPos) {
+		                $this->markNegativeColPos($allRecordUids);
+		            } else {
+		                $this->markDeleted($allRecordUids);
+		            }
+		        }
 
 		return $countRecords;
 	}
 
 	/**
-	 * Returns an array of content UIDs which are not referenced on
-	 * the any of the given pages in $pageIds
+	 * Returns an array of UIDs which are not referenced on
+	 * the page with the given uid (= parent id).
 	 *
 	 * @param	array		$allReferencedElementsArr: Array with UIDs of referenced elements
      * @param   array       $pageIds Array of pages where to search for unreferenced elements
@@ -131,10 +149,10 @@ class Tx_SfTv2fluidge_Service_UnreferencedElementHelper implements t3lib_Singlet
 			'uid',
 			'tt_content',
 			'uid NOT IN (' . implode(',', $allReferencedElementsArr) . ')'.
-            ' AND pid IN (' . implode(',', $pageIds) . ')' .
+			            ' AND pid IN (' . implode(',', $pageIds) . ')' .
 			' AND t3ver_wsid='.intval($BE_USER->workspace).
-			t3lib_BEfunc::deleteClause('tt_content').
-			t3lib_BEfunc::versioningPlaceholderClause('tt_content'),
+			\TYPO3\CMS\Backend\Utility\BackendUtility::deleteClause('tt_content').
+			\TYPO3\CMS\Backend\Utility\BackendUtility::versioningPlaceholderClause('tt_content'),
 			'',
 			'sorting'
 		);
@@ -157,8 +175,8 @@ class Tx_SfTv2fluidge_Service_UnreferencedElementHelper implements t3lib_Singlet
 		$where = 'uid IN (' . implode(',', $uids) . ')';
 		$GLOBALS['TYPO3_DB']->exec_UPDATEquery('tt_content', $where, array('deleted' => 1, 'tstamp' => time()));
 
-		$this->logHelper->logMessage('===== ' . __CLASS__ . ' - ' . __FUNCTION__ . ' =====');
-		$this->logHelper->logMessage($GLOBALS['TYPO3_DB']->debug_lastBuiltQuery);
+				$this->logHelper->logMessage('===== ' . __CLASS__ . ' - ' . __FUNCTION__ . ' =====');
+				$this->logHelper->logMessage($GLOBALS['TYPO3_DB']->debug_lastBuiltQuery);
 	}
 
 	/**
@@ -169,10 +187,10 @@ class Tx_SfTv2fluidge_Service_UnreferencedElementHelper implements t3lib_Singlet
 	 */
 	private function markNegativeColPos($uids) {
 		$where = 'uid IN (' . implode(',', $uids) . ')';
-		$GLOBALS['TYPO3_DB']->exec_UPDATEquery('tt_content', $where, array('colPos' => -2, 'tstamp' => time()));
+		$GLOBALS['TYPO3_DB']->exec_UPDATEquery('tt_content', $where, array('colPos' => -1, 'tstamp' => time()));
 
-		$this->logHelper->logMessage('===== ' . __CLASS__ . ' - ' . __FUNCTION__ . ' =====');
-		$this->logHelper->logMessage($GLOBALS['TYPO3_DB']->debug_lastBuiltQuery);
+				$this->logHelper->logMessage('===== ' . __CLASS__ . ' - ' . __FUNCTION__ . ' =====');
+				$this->logHelper->logMessage($GLOBALS['TYPO3_DB']->debug_lastBuiltQuery);
 	}
 }
 

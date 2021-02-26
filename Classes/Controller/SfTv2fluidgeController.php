@@ -24,121 +24,125 @@
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
+namespace Sf\SfTv2fluidge\Controller;
+
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+
 /**
- * TV Tv2fluidge Backend Controller
+ * TV SfTv2fluidge Backend Controller
  */
-class Tx_SfTv2fluidge_Controller_Tv2fluidgeController extends Tx_Extbase_MVC_Controller_ActionController {
+class SfTv2fluidgeController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionController {
 
 	/**
 	 * UnreferencedElementHelper
 	 *
-	 * @var Tx_SfTv2fluidge_Service_UnreferencedElementHelper
+	 * @var \Sf\SfTv2fluidge\Service\UnreferencedElementHelper
 	 */
 	protected $unreferencedElementHelper;
 
 	/**
 	 * DI for UnreferencedElementHelper
 	 *
-	 * @param Tx_SfTv2fluidge_Service_UnreferencedElementHelper $unreferencedElementHelper
+	 * @param \Sf\SfTv2fluidge\Service\UnreferencedElementHelper $unreferencedElementHelper
 	 * @return void
 	 */
-	public function injectUnreferencedElementHelper(Tx_SfTv2fluidge_Service_UnreferencedElementHelper $unreferencedElementHelper) {
+	public function injectUnreferencedElementHelper(\Sf\SfTv2fluidge\Service\UnreferencedElementHelper $unreferencedElementHelper) {
 		$this->unreferencedElementHelper = $unreferencedElementHelper;
 	}
 
 	/**
 	 * ReferenceElementHelper
 	 *
-	 * @var Tx_SfTv2fluidge_Service_ReferenceElementHelper
+	 * @var \Sf\SfTv2fluidge\Service\ReferenceElementHelper
 	 */
 	protected $referenceElementHelper;
 
 	/**
 	 * DI for ReferenceElementHelper
 	 *
-	 * @param Tx_SfTv2fluidge_Service_ReferenceElementHelper $referenceElementHelper
+	 * @param \Sf\SfTv2fluidge\Service\ReferenceElementHelper $referenceElementHelper
 	 * @return void
 	 */
-	public function injectReferenceElementHelper(Tx_SfTv2fluidge_Service_ReferenceElementHelper $referenceElementHelper) {
+	public function injectReferenceElementHelper(\Sf\SfTv2fluidge\Service\ReferenceElementHelper $referenceElementHelper) {
 		$this->referenceElementHelper = $referenceElementHelper;
 	}
 
 	/**
 	 * MigrateFceHelper
 	 *
-	 * @var Tx_SfTv2fluidge_Service_MigrateFceHelper
+	 * @var \Sf\SfTv2fluidge\Service\MigrateFceHelper
 	 */
 	protected $migrateFceHelper;
 
 	/**
 	 * DI for MigrateFceHelper
 	 *
-	 * @param Tx_SfTv2fluidge_Service_MigrateFceHelper $migrateFceHelper
+	 * @param \Sf\SfTv2fluidge\Service\MigrateFceHelper $migrateFceHelper
 	 * @return void
 	 */
-	public function injectUpdateFceHelper(Tx_SfTv2fluidge_Service_MigrateFceHelper $migrateFceHelper) {
+	public function injectUpdateFceHelper(\Sf\SfTv2fluidge\Service\MigrateFceHelper $migrateFceHelper) {
 		$this->migrateFceHelper = $migrateFceHelper;
 	}
 
 	/**
 	 * MigrateContentHelper
 	 *
-	 * @var Tx_SfTv2fluidge_Service_MigrateContentHelper
+	 * @var \Sf\SfTv2fluidge\Service\MigrateContentHelper
 	 */
 	protected $migrateContentHelper;
 
 	/**
 	 * DI for MigrateContentHelper
 	 *
-	 * @param Tx_SfTv2fluidge_Service_MigrateContentHelper $migrateContentHelper
+	 * @param \Sf\SfTv2fluidge\Service\MigrateContentHelper $migrateContentHelper
 	 * @return void
 	 */
-	public function injectContentFceHelper(Tx_SfTv2fluidge_Service_MigrateContentHelper $migrateContentHelper) {
+	public function injectContentFceHelper(\Sf\SfTv2fluidge\Service\MigrateContentHelper $migrateContentHelper) {
 		$this->migrateContentHelper = $migrateContentHelper;
 	}
 
 	/**
-	 * @var Tx_SfTv2fluidge_Service_FixSortingHelper
+	 * @var \Sf\SfTv2fluidge\Service\FixSortingHelper
 	 */
 	protected $fixSortingHelper;
 
 	/**
 	 * DI for fix sorting helper
 	 *
-	 * @param Tx_SfTv2fluidge_Service_FixSortingHelper $fixSortingHelper
+	 * @param \Sf\SfTv2fluidge\Service\FixSortingHelper $fixSortingHelper
 	 * @return void
 	 */
-	public function injectFixSortingHelper(Tx_SfTv2fluidge_Service_FixSortingHelper $fixSortingHelper) {
+	public function injectFixSortingHelper(\Sf\SfTv2fluidge\Service\FixSortingHelper $fixSortingHelper) {
 		$this->fixSortingHelper = $fixSortingHelper;
 	}
 
 	/**
-	 * @var Tx_SfTv2fluidge_Service_SharedHelper
+	 * @var \Sf\SfTv2fluidge\Service\SharedHelper
 	 */
 	protected $sharedHelper;
 
 	/**
 	 * DI for shared helper
 	 *
-	 * @param Tx_SfTv2fluidge_Service_SharedHelper $sharedHelper
+	 * @param \Sf\SfTv2fluidge\Service\SharedHelper $sharedHelper
 	 * @return void
 	 */
-	public function injectSharedHelper(Tx_SfTv2fluidge_Service_SharedHelper $sharedHelper) {
+	public function injectSharedHelper(\Sf\SfTv2fluidge\Service\SharedHelper $sharedHelper) {
 		$this->sharedHelper = $sharedHelper;
 	}
 
 	/**
-	 * @var Tx_SfTv2fluidge_Service_ConvertMultilangContentHelper
+	 * @var \Sf\SfTv2fluidge\Service\ConvertMultilangContentHelper
 	 */
 	protected $convertMultilangContentHelper;
 
 	/**
 	 * DI for shared helper
 	 *
-	 * @param Tx_SfTv2fluidge_Service_ConvertMultilangContentHelper $convertMultilangContentHelper
+	 * @param \Sf\SfTv2fluidge\Service\ConvertMultilangContentHelper $convertMultilangContentHelper
 	 * @return void
 	 */
-	public function injectConvertMultilangContentHelper(Tx_SfTv2fluidge_Service_ConvertMultilangContentHelper $convertMultilangContentHelper) {
+	public function injectConvertMultilangContentHelper(\Sf\SfTv2fluidge\Service\ConvertMultilangContentHelper $convertMultilangContentHelper) {
 		$this->convertMultilangContentHelper = $convertMultilangContentHelper;
 	}
 
@@ -148,7 +152,7 @@ class Tx_SfTv2fluidge_Controller_Tv2fluidgeController extends Tx_Extbase_MVC_Con
 	 * @return void
 	 */
 	public function indexAction() {
-        $this->view->assignMultiple(
+			$this->view->assignMultiple(
             array(
                 'rootPid' => $this->sharedHelper->getConversionRootPid(),
                 'includeNonRootPages' => $this->sharedHelper->getIncludeNonRootPagesIsEnabled(),
@@ -178,19 +182,19 @@ class Tx_SfTv2fluidge_Controller_Tv2fluidgeController extends Tx_Extbase_MVC_Con
 		if (intval($formdata['markasnegativecolpos']) === 1) {
 			$markAsNegativeColPos = TRUE;
 		}
-        $ignoreshortcutpages = FALSE;
-        if (intval($formdata['ignoreshortcutpages']) === 1) {
-            $ignoreshortcutpages = TRUE;
-        }
-        $ignoresysfolders = FALSE;
-        if (intval($formdata['ignoresysfolders']) === 1) {
-            $ignoresysfolders = TRUE;
-        }
-		$numRecords = $this->unreferencedElementHelper->markDeletedUnreferencedElementsRecords(
-		    $markAsNegativeColPos,
-            $ignoreshortcutpages,
-            $ignoresysfolders
-        );
+		$ignoreshortcutpages = FALSE;
+		        if (intval($formdata['ignoreshortcutpages']) === 1) {
+		            $ignoreshortcutpages = TRUE;
+		        }
+		        $ignoresysfolders = FALSE;
+		        if (intval($formdata['ignoresysfolders']) === 1) {
+		            $ignoresysfolders = TRUE;
+		        }
+				$numRecords = $this->unreferencedElementHelper->markDeletedUnreferencedElementsRecords(
+				    $markAsNegativeColPos,
+		            $ignoreshortcutpages,
+		            $ignoresysfolders
+		        );
 		$this->view->assign('numRecords', $numRecords);
 	}
 
@@ -224,12 +228,14 @@ class Tx_SfTv2fluidge_Controller_Tv2fluidgeController extends Tx_Extbase_MVC_Con
 	 * @return void
 	 */
 	public function indexMigrateFceAction($formdata = NULL) {
+
 		if ($this->sharedHelper->getTemplavoilaStaticDsIsEnabled()) {
 			$allFce = $this->migrateFceHelper->getAllFileFce();
 		}
 		else {
 			$allFce = $this->migrateFceHelper->getAllDbFce();
 		}
+
 		$allGe = $this->migrateFceHelper->getAllGe();
 
 		if (isset($formdata['fce'])) {
@@ -259,7 +265,8 @@ class Tx_SfTv2fluidge_Controller_Tv2fluidgeController extends Tx_Extbase_MVC_Con
 		}
 
 		if (!empty($geKey)) {
-			$geContentCols = $this->sharedHelper->getGeContentCols($geKey);
+			$geContentCols = $this->migrateFceHelper->getGeContentCols($geKey);
+//			$geContentCols = $this->sharedHelper->getGeContentCols($geKey);
 		} else {
 			$geContentCols = NULL;
 		}
@@ -301,6 +308,7 @@ class Tx_SfTv2fluidge_Controller_Tv2fluidgeController extends Tx_Extbase_MVC_Con
 		if ($fce > 0 && !empty($ge)) {
             $pageUids = $this->sharedHelper->getPageIds();
 			$contentElements = $this->migrateFceHelper->getContentElementsByFce($fce, $pageUids);
+		
 			foreach($contentElements as $contentElement) {
 				$fcesConverted++;
 				$this->migrateFceHelper->migrateFceFlexformContentToGe($contentElement, $ge);
@@ -330,6 +338,8 @@ class Tx_SfTv2fluidge_Controller_Tv2fluidgeController extends Tx_Extbase_MVC_Con
 		else {
 			$tvtemplates = $this->migrateContentHelper->getAllDbTvTemplates();
 		}
+
+		
 		$beLayouts = $this->migrateContentHelper->getAllBeLayouts();
 
 		if (isset($formdata['tvtemplate'])) {
@@ -378,12 +388,12 @@ class Tx_SfTv2fluidge_Controller_Tv2fluidgeController extends Tx_Extbase_MVC_Con
 		$this->sharedHelper->setUnlimitedTimeout();
 
 		$uidTvTemplate = (int)$formdata['tvtemplate'];
-		$uidBeLayout = (int)$formdata['belayout'];
+		$uidBeLayout = $formdata['belayout'];
 
 		$contentElementsUpdated = 0;
 		$pageTemplatesUpdated = 0;
 
-		if ($uidTvTemplate > 0 && $uidBeLayout > 0) {
+		if ($uidTvTemplate > 0 && strlen($uidBeLayout)) {
 			$pageUids = $this->sharedHelper->getPageIds();
 
 			foreach($pageUids as $pageUid) {

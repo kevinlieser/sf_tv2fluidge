@@ -1,5 +1,3 @@
-[![Project Status: Inactive – The project has reached a stable, usable state but is no longer being actively developed; support/maintenance will be provided as time allows.](https://www.repostatus.org/badges/latest/inactive.svg)](https://www.repostatus.org/#inactive)
-
 TemplaVoila migration to Fluidtemplate and Grid Element
 =======================================================
 
@@ -25,34 +23,9 @@ and TypoScript.
 ## Prerequisites
 
 * A full backup of your TYPO3 website (database and files)!
-* TemplaVoila version 1.8+ installed and with old page module enabled
+* TemplaVoila version 1.8 installed and with old page module enabled
 * ExtBase and Fluid installed
 * Grid Elements installed (please ignore conflict with TemplaVoila!)
-
-## Extension settings
-
-The following settings are available in the extension settings.
-
-**rootPid**
-
-If this field is set to a valid PID from the page tree, only this page and all subpages will be included during all
-migration steps.
-
-Default value: empty
-
-**includeNonRootPages**
-
-Only respected, when ```rootPid``` is empty. If set, also non root pages are selected from the pagetree
-when the extension selects TYPO3 pages to be included in the migration.
- 
-Default value: off
-
-**pagesDepthLimit**
-
-The page depth limit for fetching subpages from the pagetree when the extension selects TYPO3 pages to
-be included in the migration process.
-
-Default value: 99
 
 ## Migration steps in short
 
@@ -257,9 +230,6 @@ styles.content.getBorder.select.includeRecordsWithoutDefaultTranslation = 1
 
 ![Fix sorting module](Documentation/Images/fix-sorting.png)
 
-You should only use this module, if the sorting of content elements after the migration is different to the original
-state.
-
 This module sets the sorting to all translated content elements, so it will be the same as for the original content
 element.
 
@@ -276,9 +246,3 @@ This module should only be used when the following steps are processed:
 
 The extension is hosted on GitHub. Please report feedback, bugs and changerequests directly at
 https://github.com/derhansen/sf_tv2fluidge
-
-## TYPO3 7.6 LTS support
-
-At the time of writing, there is no fully working version of TemplaVoila available for TYPO3 7.6 LTS. If you plan
-to migrate to Fluidtemplate and Gridelements using sf_tv2fluidge, I recommend to do the migration before the 
-TYPO3 6.2 -> 7.6 core update.  

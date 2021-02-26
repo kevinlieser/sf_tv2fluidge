@@ -23,38 +23,53 @@
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
+namespace Sf\SfTv2fluidge\Service;
+
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use GridElementsTeam\Gridelements\Backend\LayoutSetup;
+
 /**
  * Helper class for handling TV FCE to Grid Element content migration
  */
-class Tx_SfTv2fluidge_Service_MigrateFceHelper implements t3lib_Singleton {
+class MigrateFceHelper implements \TYPO3\CMS\Core\SingletonInterface {
 
 	/**
-	 * @var Tx_SfTv2fluidge_Service_SharedHelper
+	 * @var \Sf\SfTv2fluidge\Service\SharedHelper
 	 */
 	protected $sharedHelper;
 
 	/**
-	 * @var t3lib_refindex
+	 * @var \TYPO3\CMS\Core\Database\ReferenceIndex
 	 */
 	protected $refIndex;
 
 	/**
+	 * @var \GridElementsTeam\Gridelements\Backend\LayoutSetup
+	 */
+	protected $layoutSetup;
+
+	/**
+	 * @var array
+	 */
+	protected $gridElementLayoutSetup = NULL;
+
+	/**
 	 * DI for shared helper
 	 *
-	 * @param Tx_SfTv2fluidge_Service_SharedHelper $sharedHelper
+	 * @param \Sf\SfTv2fluidge\Service\SharedHelper $sharedHelper
 	 * @return void
 	 */
-	public function injectSharedHelper(Tx_SfTv2fluidge_Service_SharedHelper $sharedHelper) {
+	public function injectSharedHelper(\Sf\SfTv2fluidge\Service\SharedHelper $sharedHelper) {
 		$this->sharedHelper = $sharedHelper;
 	}
 
 	/**
-	 * DI for t3lib_refindex
+	 * DI for \TYPO3\CMS\Core\Database\ReferenceIndex
 	 *
-	 * @param t3lib_refindex t3lib_refindex
+	 * @param \TYPO3\CMS\Core\Database\ReferenceIndex ReferenceIndex
 	 * @return void
 	 */
-	public function injectRefIndex(t3lib_refindex $refIndex) {
+	public function injectRefIndex(\TYPO3\CMS\Core\Database\ReferenceIndex $refIndex) {
 		$this->refIndex = $refIndex;
 	}
 
@@ -65,19 +80,19 @@ class Tx_SfTv2fluidge_Service_MigrateFceHelper implements t3lib_Singleton {
 	 */
 	public function getAllFileFce() {
 		$extConf = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf']['templavoila']);
-		tx_templavoila_staticds_tools::readStaticDsFilesIntoArray($extConf);
+		\Extension\Templavoila\Utility\StaticDataStructure\ToolsUtility::readStaticDsFilesIntoArray($extConf);
 		$staticDsFiles = array();
 		foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['templavoila']['staticDataStructures'] as $staticDataStructure) {
-			if ($staticDataStructure['scope'] == tx_templavoila_datastructure::SCOPE_FCE) {
+			if ($staticDataStructure['scope'] == \Extension\Templavoila\Domain\Model\AbstractDataStructure::SCOPE_FCE) {
 				$staticDsFiles[] = $staticDataStructure['path'];
 			}
 		}
-		$quotedStaticDsFiles = $GLOBALS['TYPO3_DB']->fullQuoteArray($staticDsFiles, 'tx_templavoila_tmplobj');
+		$quotedStaticDsFiles = $GLOBALS['TYPO3_DB']->fullQuoteArray($staticDsFiles, 'tx_templavoilaplus_tmplobj');
 
-		$fields = 'tx_templavoila_tmplobj.uid, tx_templavoila_tmplobj.title';
-		$table = 'tx_templavoila_tmplobj';
-		$where = 'tx_templavoila_tmplobj.datastructure IN(' . implode(',', $quotedStaticDsFiles) . ')
-			AND tx_templavoila_tmplobj.deleted=0';
+		$fields = 'tx_templavoilaplus_tmplobj.uid, tx_templavoilaplus_tmplobj.title';
+		$table = 'tx_templavoilaplus_tmplobj';
+		$where = 'tx_templavoilaplus_tmplobj.datastructure IN(' . implode(',', $quotedStaticDsFiles) . ')
+			AND tx_templavoilaplus_tmplobj.deleted=0';
 
 		$res = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows($fields, $table, $where, '', '', '');
 
@@ -95,10 +110,10 @@ class Tx_SfTv2fluidge_Service_MigrateFceHelper implements t3lib_Singleton {
 	 * @return array
 	 */
 	public function getAllDbFce() {
-		$fields = 'tx_templavoila_tmplobj.uid, tx_templavoila_tmplobj.title';
-		$table = 'tx_templavoila_datastructure, tx_templavoila_tmplobj';
-		$where = 'tx_templavoila_datastructure.scope=2 AND tx_templavoila_datastructure.uid = tx_templavoila_tmplobj.datastructure
-			AND tx_templavoila_datastructure.deleted=0 AND tx_templavoila_tmplobj.deleted=0';
+		$fields = 'tx_templavoilaplus_tmplobj.uid, tx_templavoilaplus_tmplobj.title';
+		$table = 'tx_templavoilaplus_datastructure, tx_templavoilaplus_tmplobj';
+		$where = 'tx_templavoilaplus_datastructure.scope=2 AND tx_templavoilaplus_datastructure.uid = tx_templavoilaplus_tmplobj.datastructure
+			AND tx_templavoilaplus_datastructure.deleted=0 AND tx_templavoilaplus_tmplobj.deleted=0';
 
 		$res = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows($fields, $table, $where, '', '', '');
 
@@ -116,24 +131,85 @@ class Tx_SfTv2fluidge_Service_MigrateFceHelper implements t3lib_Singleton {
 	 * @return array
 	 */
 	public function getAllGe() {
-		/* Select all, because field "alias" is not available in older versions of GE */
-		$fields = '*';
-		$table = 'tx_gridelements_backend_layout';
-		$where = 'deleted=0';
-
-		$res = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows($fields, $table, $where, '', '', '');
 
 		$gridElements = array();
-		foreach($res as $ge) {
-			$geKey = $ge['uid'];
-			if (!empty($ge['alias'])) {
-				$geKey = $ge['alias'];
-			}
+		$layoutSetup = $this->getGridElementLayoutSetup();
 
-			$gridElements[$geKey] = $ge['title'];
+		foreach ($layoutSetup as $layoutId => $setup) {
+			$gridElements[$layoutId] = $setup['title'];
 		}
 
 		return $gridElements;
+	}
+
+	protected function getGridElementLayoutSetup() {
+		if (!is_array($this->gridElementLayoutSetup)) {
+			$layoutSetupObj = $this->getLayoutSetup();
+			$layoutSetup = $layoutSetupObj->getLayoutSetup();
+
+			if (is_array($layoutSetup) && count($layoutSetup)) {
+				foreach ($layoutSetup as $layoutId => $setup) {
+					if (isset($setup['title']) && (strpos($setup['title'], 'LLL:') !== FALSE)) {
+						$layoutSetup[$layoutId]['title'] = $layoutSetupObj->getLanguageService()->sL($setup['title']);
+					}
+				}
+
+				$this->gridElementLayoutSetup = $layoutSetup;
+			} else {
+				$this->gridElementLayoutSetup = array();
+			}
+		}
+
+		return $this->gridElementLayoutSetup;
+	}
+
+	protected function getLayoutSetup() {
+		if (!$this->layoutSetup) {
+			/** @var \GridElementsTeam\Gridelements\Backend\LayoutSetup layoutSetup */
+			$this->layoutSetup = GeneralUtility::makeInstance('GridElementsTeam\Gridelements\Backend\LayoutSetup');
+			$this->layoutSetup->init($GLOBALS['_GET']['id'], array());
+		}
+
+		return $this->layoutSetup;
+	}
+
+	public function getGeContentCols($layoutId) {
+		$contentColumns = array();
+
+//		$layoutSetup = $this->getGridElementLayoutSetup();
+		$layoutSetup = $this->getLayoutSetup();
+		$columns = $layoutSetup->getLayoutColumnsSelectItems($layoutId);
+		
+		foreach ($columns as $column) {
+			if (isset($column[0]) && isset($column[1])) {
+				$contentColumns[$column[1]] = $column[0];
+			}
+		}
+
+		return $contentColumns;
+	}
+
+	/**
+	 * Returns an array with names of content columns for the given TypoScript
+	 *
+	 * @param string $typoScript
+	 * @return array
+	 */
+	private function getContentColsFromTs($typoScript) {
+		$parser = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\TypoScript\\Parser\\TypoScriptParser');
+		$parser->parse($typoScript);
+		$data = $parser->setup['backend_layout.'];
+
+		$contentCols = array();
+		$contentCols[''] = \TYPO3\CMS\Extbase\Utility\LocalizationUtility::translate('label_select', 'sf_tv2fluidge');
+		if ($data) {
+			foreach($data['rows.'] as $row) {
+				foreach($row['columns.'] as $column) {
+					$contentCols[$column['colPos']] = $column['name'];
+				}
+			}
+		}
+		return $contentCols;
 	}
 
 	/**
@@ -156,16 +232,14 @@ class Tx_SfTv2fluidge_Service_MigrateFceHelper implements t3lib_Singleton {
 	 * Returns all tt_content elements which contains a TemplaVoila FCE with the given uid
 	 *
 	 * @param int $uidFce
-     * @param array $pageUids
 	 * @return mixed
-	 */
-	public function getContentElementsByFce($uidFce, $pageUids) {
+	 */	
+	 public function getContentElementsByFce($uidFce, $pageUids) {
 		$fields = '*';
 		$table = 'tt_content';
-		$where = 'CType = "templavoila_pi1" AND tx_templavoila_to=' . intval($uidFce) .
-            ' AND pid IN (' . implode(',', $pageUids) . ')' .
-            t3lib_BEfunc::deleteClause('tt_content');
-
+		$where = 'CType = "templavoilaplus_pi1" AND tx_templavoilaplus_to=' . intval($uidFce) .
+		' AND pid IN (' . implode(',', $pageUids) . ')' .
+			\TYPO3\CMS\Backend\Utility\BackendUtility::deleteClause('tt_content');
 		$res = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows($fields, $table, $where, '', '', '');
 
 		return $res;
@@ -179,8 +253,8 @@ class Tx_SfTv2fluidge_Service_MigrateFceHelper implements t3lib_Singleton {
 	 * @return void
 	 */
 	public function migrateFceFlexformContentToGe($contentElement, $geKey) {
-		$tvTemplateUid = (int)$contentElement['tx_templavoila_to'];
-		$flexform = $this->sharedHelper->cleanFlexform($contentElement['tx_templavoila_flex'], $tvTemplateUid, false);
+		$tvTemplateUid = (int)$contentElement['tx_templavoilaplus_to'];
+		$flexform = $this->sharedHelper->cleanFlexform($contentElement['tx_templavoilaplus_flex'], $tvTemplateUid, false);
 		$GLOBALS['TYPO3_DB']->exec_UPDATEquery('tt_content', 'uid=' . intval($contentElement['uid']),
 			array(
 				'CType' => 'gridelements_pi1',
@@ -197,7 +271,7 @@ class Tx_SfTv2fluidge_Service_MigrateFceHelper implements t3lib_Singleton {
 	 * @return void
 	 */
 	public function markFceDeleted($uidFce) {
-		$GLOBALS['TYPO3_DB']->exec_UPDATEquery('tx_templavoila_tmplobj', 'uid=' . intval($uidFce),
+		$GLOBALS['TYPO3_DB']->exec_UPDATEquery('tx_templavoilaplus_tmplobj', 'uid=' . intval($uidFce),
 			array('deleted' => 1)
 		);
 	}
@@ -218,48 +292,47 @@ class Tx_SfTv2fluidge_Service_MigrateFceHelper implements t3lib_Singleton {
 
 		$count = 0;
 		$sorting = 0;
+		  // Respect language
+		        foreach ($tvContentArray as $lang => $fields) {
 
-        // Respect language
-        foreach ($tvContentArray as $lang => $fields) {
+		            foreach ($fields as $key => $contentUidString) {
+		                if (array_key_exists($key, $fieldMapping) && $contentUidString != '') {
+		                    $contentUids = explode(',', $contentUidString);
+		                    foreach ($contentUids as $contentUid) {
+		                        $contentUid = (int)$contentUid;
+		                        $myContentElement = NULL;
+		                        $myContentElement = $this->sharedHelper->getContentElement($contentUid);
+		                        $containerUid = (int)$contentElement['uid'];
+		                        if (($translationParentUid > 0) && ($sysLanguageUid > 0)) {
+		                            $myCeTranslationParentUid = (int)$myContentElement['uid'];
+		                            if ($myCeTranslationParentUid > 0) {
+		                                $tmpMyContentElement = $this->sharedHelper->getTranslationForContentElementAndLanguage($myCeTranslationParentUid, $sysLanguageUid);
+		                                $tmpMyContentUid = (int)$tmpMyContentElement['uid'];
+		                                if ($tmpMyContentUid > 0) {
+		                                    $contentUid = $tmpMyContentUid;
+		                                    $myContentElement = $tmpMyContentElement;
+		                                } else {
+		                                    $containerUid = $translationParentUid;
+		                                }
+		                            } else {
+		                                $containerUid = $translationParentUid;
+		                            }
+		                        } else {
+		                            $myContentElement = $this->sharedHelper->getContentElement($contentUid);
+		                        }
 
-            foreach ($fields as $key => $contentUidString) {
-                if (array_key_exists($key, $fieldMapping) && $contentUidString != '') {
-                    $contentUids = explode(',', $contentUidString);
-                    foreach ($contentUids as $contentUid) {
-                        $contentUid = (int)$contentUid;
-                        $myContentElement = NULL;
-                        $myContentElement = $this->sharedHelper->getContentElement($contentUid);
-                        $containerUid = (int)$contentElement['uid'];
-                        if (($translationParentUid > 0) && ($sysLanguageUid > 0)) {
-                            $myCeTranslationParentUid = (int)$myContentElement['uid'];
-                            if ($myCeTranslationParentUid > 0) {
-                                $tmpMyContentElement = $this->sharedHelper->getTranslationForContentElementAndLanguage($myCeTranslationParentUid, $sysLanguageUid);
-                                $tmpMyContentUid = (int)$tmpMyContentElement['uid'];
-                                if ($tmpMyContentUid > 0) {
-                                    $contentUid = $tmpMyContentUid;
-                                    $myContentElement = $tmpMyContentElement;
-                                } else {
-                                    $containerUid = $translationParentUid;
-                                }
-                            } else {
-                                $containerUid = $translationParentUid;
-                            }
-                        } else {
-                            $myContentElement = $this->sharedHelper->getContentElement($contentUid);
-                        }
+		                        if (intval($myContentElement['pid']) === $pageUid) {
+		                            $this->sharedHelper->updateContentElementForGe($contentUid, $containerUid, $fieldMapping[$key], $sorting);
+		                        }
+		                        $sorting += 25;
+		                        $count++;
 
-                        if (intval($myContentElement['pid']) === $pageUid) {
-                            $this->sharedHelper->updateContentElementForGe($contentUid, $containerUid, $fieldMapping[$key], $sorting);
-                        }
-                        $sorting += 25;
-                        $count++;
-
-                        $this->sharedHelper->fixContentElementLocalizationDiffSources($contentUid);
-                        $this->refIndex->updateRefIndexTable('tt_content', $contentUid);
-                    }
-                }
-            }
-        }
+		                        $this->sharedHelper->fixContentElementLocalizationDiffSources($contentUid);
+		                        $this->refIndex->updateRefIndexTable('tt_content', $contentUid);
+		                    }
+		                }
+		            }
+		        }
 
 		return $count;
 	}

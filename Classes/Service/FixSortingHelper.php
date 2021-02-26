@@ -23,40 +23,42 @@
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
+namespace Sf\SfTv2fluidge\Service;
+
 /**
  * Class with methods for fixing the sorting of translated elements
  */
-class Tx_SfTv2fluidge_Service_FixSortingHelper implements t3lib_Singleton {
+class FixSortingHelper implements \TYPO3\CMS\Core\SingletonInterface {
 
 	const SORTING_OFFSET = 25;
 
 	/**
-	 * @var Tx_SfTv2fluidge_Service_SharedHelper
+	 * @var \Sf\SfTv2fluidge\Service\SharedHelper
 	 */
 	protected $sharedHelper;
 
 	/**
-	 * @var t3lib_refindex
+	 * @var \TYPO3\CMS\Core\Database\ReferenceIndex
 	 */
 	protected $refIndex;
 
 	/**
 	 * DI for shared helper
 	 *
-	 * @param Tx_SfTv2fluidge_Service_SharedHelper $sharedHelper
+	 * @param \Sf\SfTv2fluidge\Service\SharedHelper $sharedHelper
 	 * @return void
 	 */
-	public function injectSharedHelper(Tx_SfTv2fluidge_Service_SharedHelper $sharedHelper) {
+	public function injectSharedHelper(\Sf\SfTv2fluidge\Service\SharedHelper $sharedHelper) {
 		$this->sharedHelper = $sharedHelper;
 	}
 
 	/**
-	 * DI for t3lib_refindex
+	 * DI for \TYPO3\CMS\Core\Database\ReferenceIndex
 	 *
-	 * @param t3lib_refindex t3lib_refindex
+	 * @param \TYPO3\CMS\Core\Database\ReferenceIndex ReferenceIndex
 	 * @return void
 	 */
-	public function injectRefIndex(t3lib_refindex $refIndex) {
+	public function injectRefIndex(\TYPO3\CMS\Core\Database\ReferenceIndex $refIndex) {
 		$this->refIndex = $refIndex;
 	}
 
@@ -108,7 +110,7 @@ class Tx_SfTv2fluidge_Service_FixSortingHelper implements t3lib_Singleton {
 
 				$contentElementPageUid = (int)$contentElement['pid'];
 				if ($contentElementPageUid === $pageUid) {
-					$contentTvFlexform = $contentElement['tx_templavoila_flex'];
+					$contentTvFlexform = $contentElement['tx_templavoilaplus_flex'];
 					$contentElementUid = (int)$contentElement['uid'];
 					if ($contentElementUid > 0) {
 						$sorting += self::SORTING_OFFSET;
@@ -150,7 +152,7 @@ class Tx_SfTv2fluidge_Service_FixSortingHelper implements t3lib_Singleton {
 	protected function getContentElementUids($contentArray) {
 		$contentElementUidValues = array();
 		foreach ($contentArray as $contentElementList) {
-			$fieldContentUidValues = t3lib_div::trimExplode(',', $contentElementList, TRUE);
+			$fieldContentUidValues = \TYPO3\CMS\Core\Utility\GeneralUtility::trimExplode(',', $contentElementList, TRUE);
 			if (is_array($fieldContentUidValues)) {
 				foreach ($fieldContentUidValues as $fieldContentUid) {
 					$fieldContentUid = (int)$fieldContentUid;
@@ -164,10 +166,10 @@ class Tx_SfTv2fluidge_Service_FixSortingHelper implements t3lib_Singleton {
 	}
 
 	/**
-	 * Returns all content elements for the given page
+	 * Returns all content elements for the given page, where the language is set to $langUid
 	 *
 	 * @param int $pageUid
-	 * @param array $sortedContentElements
+	 * @param int $langUid
 	 * @return mixed
 	 */
 	public function getRemainingPageContentElements($pageUid, $sortedContentElements) {
@@ -183,7 +185,7 @@ class Tx_SfTv2fluidge_Service_FixSortingHelper implements t3lib_Singleton {
 			$table = 'tt_content';
 			$where = '(pid=' . (int)$pageUid . ')' .
 				$notInWhere .
-				t3lib_BEfunc::deleteClause('tt_content');
+				\TYPO3\CMS\Backend\Utility\BackendUtility::deleteClause('tt_content');
 
 			$contentElements = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows($fields, $table, $where, '', 'sorting ASC, sys_language_uid ASC, uid ASC', '');
 		}

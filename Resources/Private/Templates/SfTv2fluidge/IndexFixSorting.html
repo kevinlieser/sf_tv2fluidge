@@ -10,6 +10,25 @@
     <h3><f:translate key="label_what_does_it_do" /></h3>
     <p><f:translate key="mod_fixsorting_description1" /></p>
     <p><f:translate key="mod_fixsorting_description2" /></p>
+    
+    <h3>-- ATTENTION --</h3>
+    
+    <p>Maybe use instead the following MySQL Command to fix/sync the sorting of all Contents with the default language.</p>
+
+    <p><strong>Show entries side by side</strong></p>
+
+    <p>select a.header, a.uid, a.sorting, b.sorting, b.uid, b.header from tt_content as a <br />
+    inner join tt_content as b on a.uid=b.l18n_parent <br />
+    where b.l18n_parent > 0 and a.sys_language_uid = 0 and not a.deleted and not b.deleted</p>
+
+    <p><strong>Update sorting</strong></p>
+
+    <p>UPDATE tt_content as T1<br />
+    INNER JOIN tt_content as T2 ON T1.uid = T2.l18n_parent<br />
+    SET T2.sorting = T1.sorting<br />
+    WHERE T2.l18n_parent > 0 AND T1.sys_language_uid = 0 AND NOT T1.deleted AND NOT T2.deleted</p>
+
+    <h3>-- ATTENTION END --</h3>
 
     <f:form action="indexFixSorting" name="formdata" object="{formdata}">
 

@@ -23,18 +23,28 @@
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
+namespace Sf\SfTv2fluidge\Service;
+
 /**
  * Helper class for handling unreferenced elements
  */
-class Tx_SfTv2fluidge_Service_ReferenceElementHelper implements t3lib_Singleton {
+class ReferenceElementHelper implements \TYPO3\CMS\Core\SingletonInterface {
+
+	 /**
+	      * Array to count the amount of conversions for a content element on the current page
+	      * Structure: $pid => $count
+	      *
+	      * @var array
+	      */
+	     protected $conversionCount = array();
 
 	/**
-	 * @var Tx_SfTv2fluidge_Service_SharedHelper
+	 * @var \Sf\SfTv2fluidge\Service\SharedHelper
 	 */
 	protected $sharedHelper;
 
 	/**
-	 * @var t3lib_refindex
+	 * @var \TYPO3\CMS\Core\Database\ReferenceIndex
 	 */
 	protected $refIndex;
 
@@ -48,31 +58,23 @@ class Tx_SfTv2fluidge_Service_ReferenceElementHelper implements t3lib_Singleton 
 	 */
 	protected $useAllLangIfDefaultLangIsReferenced = FALSE;
 
-    /**
-     * Array to count the amount of conversions for a content element on the current page
-     * Structure: $pid => $count
-     *
-     * @var array
-     */
-    protected $conversionCount = array();
-
-    /**
+	/**
 	 * DI for shared helper
 	 *
-	 * @param Tx_SfTv2fluidge_Service_SharedHelper $sharedHelper
+	 * @param \Sf\SfTv2fluidge\Service\SharedHelper $sharedHelper
 	 * @return void
 	 */
-	public function injectSharedHelper(Tx_SfTv2fluidge_Service_SharedHelper $sharedHelper) {
+	public function injectSharedHelper(\Sf\SfTv2fluidge\Service\SharedHelper $sharedHelper) {
 		$this->sharedHelper = $sharedHelper;
 	}
 
 	/**
-	 * DI for t3lib_refindex
+	 * DI for \TYPO3\CMS\Core\Database\ReferenceIndex
 	 *
-	 * @param t3lib_refindex t3lib_refindex
+	 * @param \TYPO3\CMS\Core\Database\ReferenceIndex ReferenceIndex
 	 * @return void
 	 */
-	public function injectRefIndex(t3lib_refindex $refIndex) {
+	public function injectRefIndex(\TYPO3\CMS\Core\Database\ReferenceIndex $refIndex) {
 		$this->refIndex = $refIndex;
 	}
 
@@ -85,8 +87,9 @@ class Tx_SfTv2fluidge_Service_ReferenceElementHelper implements t3lib_Singleton 
 	}
 
 	/**
-	 * Converts all reference elements to 'insert records' elements with the recursion level set in the extension settings
+	 * Converts all reference elements to 'insert records' elements with a recursion level of 99
 	 *
+	 * @param bool $useParentUidForTranslations
 	 * @return int Number of records deleted
 	 */
 	public function convertReferenceElements() {
@@ -96,9 +99,8 @@ class Tx_SfTv2fluidge_Service_ReferenceElementHelper implements t3lib_Singleton 
 		$pids = $this->sharedHelper->getPageIds();
 		$numRecords = 0;
 		foreach ($pids as $pid) {
-            // Reset conversionCount
-            $this->conversionCount = array();
-            $tvContentArray = $this->sharedHelper->getTvContentArrayByLanguageAndFieldForPage($pid);
+			 $this->conversionCount = array();
+			            $tvContentArray = $this->sharedHelper->getTvContentArrayByLanguageAndFieldForPage($pid);
 			$numRecords += $this->convertTvContentArrayToReferenceElements($tvContentArray, $pid);
 		}
 
@@ -106,7 +108,7 @@ class Tx_SfTv2fluidge_Service_ReferenceElementHelper implements t3lib_Singleton 
 	}
 
 	/**
-	 * Converts an array of content elements to references, if they are references
+	 * converts an array of content elements to references, if they are references
 	 * also handles references inside fce
 	 *
 	 * @param array $tvContentArray
@@ -118,39 +120,39 @@ class Tx_SfTv2fluidge_Service_ReferenceElementHelper implements t3lib_Singleton 
 		$numRecords = 0;
 		$pid = (int)$pid;
 		$fceUid = (int)$fceUid;
+		// Respect language
+		        foreach ($tvContentArray as $lang => $fields) {
 
-        // Respect language
-        foreach ($tvContentArray as $lang => $fields) {
+		            // Cycle through each field
+		            foreach ($fields as $field => $contentUidString) {
+		                $contentUids = \TYPO3\CMS\Core\Utility\GeneralUtility::trimExplode(',', $contentUidString);
+		                $position = 1;
+		                foreach ($contentUids as $contentUid) {
+		                    $contentUid = (int)$contentUid;
+		                    $contentElement = $this->sharedHelper->getContentElement($contentUid);
+		                    $contentElementPid = (int)$contentElement['pid'];
+		                    if ($this->sharedHelper->isContentElementAvailable($contentUid)) {
+		                        // If content element is included in conversionCount array, we have several references to the
+		                        // content element on the same page
+		                        if (isset($this->conversionCount[$contentUid])) {
+		                            $this->conversionCount[$contentUid] = $this->conversionCount[$contentUid] + 1;
+		                            $numRecords += $this->convertReferencesToShortcut($contentUid, $contentElementPid, $pid, $field, $position, $fceUid, $lang, true);
+		                        } else {
+		                            $this->conversionCount[$contentUid] = 1;
+		                            $numRecords += $this->convertReferencesToShortcut($contentUid, $contentElementPid, $pid, $field, $position, $fceUid, $lang);
+		                        }
+		                        ++$position;
+		                    }
+		                }
+		            }
 
-            // Cycle through each field
-            foreach ($fields as $field => $contentUidString) {
-                $contentUids = t3lib_div::trimExplode(',', $contentUidString);
-                $position = 1;
-                foreach ($contentUids as $contentUid) {
-                    $contentUid = (int)$contentUid;
-                    $contentElement = $this->sharedHelper->getContentElement($contentUid);
-                    $contentElementPid = (int)$contentElement['pid'];
-                    if ($this->sharedHelper->isContentElementAvailable($contentUid)) {
-                        // If content element is included in conversionCount array, we have several references to the
-                        // content element on the same page
-                        if (isset($this->conversionCount[$contentUid])) {
-                            $this->conversionCount[$contentUid] = $this->conversionCount[$contentUid] + 1;
-                            $numRecords += $this->convertReferencesToShortcut($contentUid, $contentElementPid, $pid, $field, $position, $fceUid, $lang, true);
-                        } else {
-                            $this->conversionCount[$contentUid] = 1;
-                            $numRecords += $this->convertReferencesToShortcut($contentUid, $contentElementPid, $pid, $field, $position, $fceUid, $lang);
-                        }
-                        ++$position;
-                    }
-                }
-            }
+		        }
 
-        }
 		return $numRecords;
 	}
 
 	/**
-	 * Converts reference content elements, either current content element or sub content elements (FCE)
+	 * converts reference content elements, either current content element or sub content elements (FCE)
 	 * including translations to a insert record element
 	 *
 	 * @param int $contentUid
@@ -159,16 +161,13 @@ class Tx_SfTv2fluidge_Service_ReferenceElementHelper implements t3lib_Singleton 
 	 * @param string $field
 	 * @param int $position
 	 * @param int $fceUid
-     * @param string $lang
-     * @param bool $force Force conversion using convertReferenceToShortcut()
 	 * @return int
 	 */
-	protected function convertReferencesToShortcut($contentUid, $contentElementPid, $pid, $field, $position, $fceUid = 0, $lang = 'lDEF', $force = false) {
+ 	protected function convertReferencesToShortcut($contentUid, $contentElementPid, $pid, $field, $position, $fceUid = 0, $lang = 'lDEF', $force = false) {
 		$numRecords = 0;
 		$contentElementPid = (int)$contentElementPid;
 		$pid = (int)$pid;
 		$fceUid = (int)$fceUid;
-        // Only create a shortcut, when content element is not on given PID or if conversion is forced
 		if ($contentElementPid !== $pid || $force) {
 			$numRecords += $this->convertReferenceToShortcut($contentUid, $pid, $field, $position, $fceUid, $lang);
 		} else {
@@ -178,7 +177,7 @@ class Tx_SfTv2fluidge_Service_ReferenceElementHelper implements t3lib_Singleton 
 	}
 
 	/**
-	 * Converts a reference content element - either current content element or sub content elements (FCE)
+	 * converts a reference content element - either current content element or sub content elements (FCE)
 	 * including translations to a insert record element
 	 *
 	 * @param int $contentUid
@@ -186,16 +185,15 @@ class Tx_SfTv2fluidge_Service_ReferenceElementHelper implements t3lib_Singleton 
 	 * @param string $field
 	 * @param int $position
 	 * @param int $fceUid
-     * @param string $lang
 	 * @return int
 	 */
-	protected function convertReferenceToShortcut($contentUid, $pid, $field, $position, $fceUid = 0, $lang = 'lDEF') {
+ 	protected function convertReferenceToShortcut($contentUid, $pid, $field, $position, $fceUid = 0, $lang = 'lDEF') {
 		$numRecords = 0;
 		$newContentUid = NULL;
 		if ($fceUid > 0) {
-			$newContentUid = $this->convertFceToLocalCopy($fceUid, $field, $position, $lang);
+		$newContentUid = $this->convertFceToLocalCopy($fceUid, $field, $position, $lang);
 		} else {
-			$newContentUid = $this->convertPageCeToLocalCopy($pid, $field, $position, $lang);
+		$newContentUid = $this->convertPageCeToLocalCopy($pid, $field, $position, $lang);
 		}
 
 		$newContentUid = (int)$newContentUid;
@@ -212,13 +210,6 @@ class Tx_SfTv2fluidge_Service_ReferenceElementHelper implements t3lib_Singleton 
 		return $numRecords;
 	}
 
-    /**
-     * Converts a shortcut element to an all language shortcut
-     *
-     * @param $contentUid
-     * @param $targetUid
-     * @return bool
-     */
 	protected function convertShortcutToAllLangShortCut($contentUid, $targetUid) {
 		$contentUid = (int)$contentUid;
 		$targetUid = (int)$targetUid;
@@ -266,30 +257,28 @@ class Tx_SfTv2fluidge_Service_ReferenceElementHelper implements t3lib_Singleton 
 	 * @param integer $pageUid
 	 * @param string $field
 	 * @param integer $position
-     * @param string $lang
 	 * @return integer
 	 */
 	protected function convertPageCeToLocalCopy($pageUid, $field, $position, $lang) {
-		$flexformPointerString = 'pages:' . (int)$pageUid . ':sDEF:' . $lang . ':' . $field . ':vDEF:' . (int)$position;
+			$flexformPointerString = 'pages:' . (int)$pageUid . ':sDEF:' . $lang . ':' . $field . ':vDEF:' . (int)$position;
 		return $this->convertFlexformPointerStringToLocalCopy($flexformPointerString);
 	}
 
 	/**
 	 * Converts fce reference to local copy
 	 *
-	 * @param integer $contentUid
+	 * @param integer $pageUid
 	 * @param string $field
 	 * @param integer $position
-     * @param string $lang
 	 * @return integer
 	 */
 	protected function convertFceToLocalCopy($contentUid, $field, $position, $lang) {
-		$flexformPointerString = 'tt_content:' . (int)$contentUid . ':sDEF:' . $lang . ':' . $field . ':vDEF:' . (int)$position;
+			$flexformPointerString = 'tt_content:' . (int)$contentUid . ':sDEF:' . $lang . ':' . $field . ':vDEF:' . (int)$position;
 		return $this->convertFlexformPointerStringToLocalCopy($flexformPointerString);
 	}
 
 	/**
-	 * Converts flexform pointer string to local copy
+	 * converts flexform pointer string to local copy
 	 *
 	 * @param string $flexformPointerString
 	 * @return mixed
@@ -327,7 +316,7 @@ class Tx_SfTv2fluidge_Service_ReferenceElementHelper implements t3lib_Singleton 
 	}
 
 	/**
-	 * Converts content element to all language content element
+	 * converts content element to all language content element
 	 *
 	 * @param int $contentUid
 	 */
@@ -343,7 +332,7 @@ class Tx_SfTv2fluidge_Service_ReferenceElementHelper implements t3lib_Singleton 
 	}
 
 	/**
-	 * Deletes translation of content element
+	 * deletes translation of content element
 	 *
 	 * @param int $contentUid
 	 */
@@ -352,7 +341,7 @@ class Tx_SfTv2fluidge_Service_ReferenceElementHelper implements t3lib_Singleton 
 		$GLOBALS['TYPO3_DB']->exec_DELETEquery(
 			'tt_content',
 			'(l18n_parent =' . $contentUid . ')' .
-			t3lib_BEfunc::deleteClause('tt_content')
+			\TYPO3\CMS\Backend\Utility\BackendUtility::deleteClause('tt_content')
 		);
 	}
 
@@ -386,7 +375,7 @@ class Tx_SfTv2fluidge_Service_ReferenceElementHelper implements t3lib_Singleton 
 		$GLOBALS['TYPO3_DB']->exec_UPDATEquery(
 			'tt_content',
 			'(l18n_parent =' . $contentUid . ')' .
-			t3lib_BEfunc::deleteClause('tt_content'),
+			\TYPO3\CMS\Backend\Utility\BackendUtility::deleteClause('tt_content'),
 			array(
 				'CType'   => 'shortcut',
 				'records' => 'tt_content_' . $targetUid,
@@ -414,7 +403,7 @@ class Tx_SfTv2fluidge_Service_ReferenceElementHelper implements t3lib_Singleton 
 						'tt_content',
 						'(l18n_parent = ' . $contentUid . ')' .
 						' AND (sys_language_uid = '  . $translationTargetSysLanguageUid . ')' .
-						t3lib_BEfunc::deleteClause('tt_content'),
+						\TYPO3\CMS\Backend\Utility\BackendUtility::deleteClause('tt_content'),
 						array(
 							'CType'   => 'shortcut',
 							'records' => 'tt_content_' . $translationTargetUid,
@@ -428,7 +417,7 @@ class Tx_SfTv2fluidge_Service_ReferenceElementHelper implements t3lib_Singleton 
 	}
 
 	/**
-	 * Updates sys_refindex for translation content elements
+	 * updates sys_refindex for translation content elements
 	 *
 	 * @param $contentUid
 	 */
