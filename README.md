@@ -1,3 +1,12 @@
+Updates in this Fork
+=======================================================
+
+* TYPO3 8.7 ready
+* TemplaVoila Plus ready
+* Fixed some issues (overwriting fetched content elements IDs by empty ID array -> results in empty Column)
+* A different "fix sorting" MySQL command - you will find that in Backend module in the fix sorting section
+
+
 TemplaVoila migration to Fluidtemplate and Grid Element
 =======================================================
 
